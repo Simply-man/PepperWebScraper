@@ -9,11 +9,14 @@ class PepperWebScraper(scrapy.Spider):
         "https://www.pepper.pl/nowe"
     ]
 
-    def parse(self, response):
+    def __init__(self, *a, **kw):
+        super(PepperWebScraper, self).__init__(*a, **kw)
+        self.r = requests.get("http://worldtimeapi.org/api/ip/188.122.20.99.json")
+        self.js = json.loads(self.r.content)
+        self.today_day = int(self.js["datetime"][8:10]) - 2
+        self.today = 'paź {}.'.format(self.today_day)
 
-        r = requests.get("http://worldtimeapi.org/api/ip/188.122.20.99.json")
-        js = json.loads(r.content)
-        today_day = int(js["datetime"][8:10]) - 2
+    def parse(self, response):
 
         for items in response.css("div.gridLayout-item.threadCardLayout--card"):
             yield {
@@ -30,9 +33,7 @@ class PepperWebScraper(scrapy.Spider):
             # Saving time of our object
             time = items.css("div.size--all-s.flex.boxAlign-jc--all-fe.flex--grow-1.overflow--hidden span.hide--toBigCards1::text").get()
 
-            today = 'paź {}.'.format(today_day)
-
-            if next_page is not None and time != today:
+            if next_page is not None and time != self.today:
                 yield scrapy.Request(next_page, callback=self.parse)
             else:
                 yield scrapy.Request(next_page=None, callback=None)
